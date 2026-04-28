@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TravelRoute - подбор туристических маршрутов</title>
+    <style>
+        :root {
+            --text: #18212f;
+            --muted: #657386;
+            --line: #d9e3ee;
+            --page: #f3f7fb;
+            --panel: #ffffff;
+            --blue: #0066c9;
+            --blue-dark: #004f9f;
+            --green: #16805a;
+            --yellow: #ffd166;
+            --red: #c0392b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: var(--text);
+            background: var(--page);
+        }
+
+        .topbar {
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .topbar__inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--blue);
+        }
+
+        .stats {
+            color: var(--muted);
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .hero {
+            min-height: 300px;
+            display: flex;
+            align-items: end;
+            background:
+                linear-gradient(90deg, rgba(8, 31, 54, 0.76), rgba(8, 31, 54, 0.22)),
+                url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80") center/cover;
+            color: #fff;
+        }
+
+        .hero__inner {
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 42px 24px 36px;
+        }
+
+        .hero h1 {
+            max-width: 760px;
+            margin: 0 0 12px;
+            font-size: 42px;
+            line-height: 1.12;
+            letter-spacing: 0;
+        }
+
+        .hero p {
+            max-width: 700px;
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        main {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .search-panel,
+        .route-card,
+        .message {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .search-panel {
+            padding: 18px;
+            position: sticky;
+            top: 16px;
+        }
+
+        .search-panel h2 {
+            margin: 0 0 16px;
+            font-size: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        select,
+        input[type="number"] {
+            width: 100%;
+            min-height: 40px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: #fff;
+            color: var(--text);
+            font: inherit;
+        }
+
+        select[multiple] {
+            min-height: 146px;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.35;
+        }
+
+        .checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+        }
+
+        .submit {
+            min-height: 44px;
+            border: 0;
+            border-radius: 6px;
+            background: var(--blue);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .submit:hover {
+            background: var(--blue-dark);
+        }
+
+        .results {
+            display: grid;
+            gap: 16px;
+        }
+
+        .message {
+            padding: 18px;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .message--error {
+            color: var(--red);
+            border-color: #f0b7b1;
+            background: #fff5f3;
+        }
+
+        .route-card {
+            padding: 20px;
+        }
+
+        .route-card__main {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .eyebrow {
+            margin: 0 0 6px;
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .route-card h2 {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.25;
+            letter-spacing: 0;
+        }
+
+        .score {
+            flex: 0 0 auto;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #e7f6ef;
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        .description {
+            margin: 12px 0 0;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .facts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 14px 0;
+        }
+
+        .facts span {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 6px 10px;
+            background: #f8fafc;
+            font-size: 13px;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 14px 0;
+        }
+
+        .details div {
+            border-top: 1px solid var(--line);
+            padding-top: 10px;
+        }
+
+        dt {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        dd {
+            margin: 4px 0 0;
+            line-height: 1.4;
+        }
+
+        .reasons {
+            border-left: 4px solid var(--yellow);
+            border-radius: 6px;
+            padding: 12px 14px;
+            background: #fffbea;
+        }
+
+        .reasons h3 {
+            margin: 0 0 8px;
+            font-size: 15px;
+        }
+
+        .reasons ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .reasons li {
+            margin: 4px 0;
+        }
+
+        @media (max-width: 860px) {
+            .topbar__inner {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .stats {
+                text-align: left;
+            }
+
+            .hero {
+                min-height: 330px;
+            }
+
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .search-panel {
+                position: static;
+            }
+
+            .details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar__inner">
+            <div class="brand">TravelRoute</div>
+            <div class="stats" id="stats">Загрузка базы маршрутов...</div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero__inner">
+            <h1>Подбор туристических маршрутов по России</h1>
+            <p>Направления, сезон, бюджет и интересы собираются в персональную выдачу с понятным объяснением каждой рекомендации.</p>
+        </div>
+    </section>
+
+    <main>
+        <aside class="search-panel">
+            <h2>Параметры поездки</h2>
+            <form class="form-grid" id="searchForm">
+                <label>Регион
+                    <select id="region">
+                        <option value="">Любой регион</option>
+                    </select>
+                </label>
+
+                <label>Город
+                    <select id="city">
+                        <option value="">Любой город</option>
+                    </select>
+                </label>
+
+                <label>Сезон
+                    <select id="season">
+                        <option value="зима">Зима</option>
+                        <option value="весна">Весна</option>
+                        <option value="лето" selected>Лето</option>
+                        <option value="осень">Осень</option>
+                    </select>
+                </label>
+
+                <label>Количество дней
+                    <input id="days" type="number" min="1" max="14" value="4">
+                </label>
+
+                <label>Бюджет на человека, руб.
+                    <input id="budget" type="number" min="3000" max="200000" step="500" value="23000">
+                </label>
+
+                <label>Интересы
+                    <select id="interests" multiple></select>
+                    <span class="hint">До 5 вариантов. Без выбора система учитывает любые интересы.</span>
+                </label>
+
+                <label>Транспорт
+                    <select id="transport">
+                        <option value="">Любой транспорт</option>
+                    </select>
+                </label>
+
+                <label>Активность
+                    <select id="activity">
+                        <option value="низкая">Низкая</option>
+                        <option value="средняя" selected>Средняя</option>
+                        <option value="высокая">Высокая</option>
+                    </select>
+                </label>
+
+                <label>Климат
+                    <select id="climate">
+                        <option value="">Любой климат</option>
+                    </select>
+                </label>
+
+                <label class="checkbox">
+                    <input id="accessible" type="checkbox">
+                    Нужна доступная среда
+                </label>
+
+                <button class="submit" type="submit">Найти маршруты</button>
+            </form>
+        </aside>
+
+        <section class="results" id="results">
+            <div class="message">База маршрутов загружается.</div>
+        </section>
+    </main>
+
+    <script>
+        const CITY_CSV_PATH = "data/city.csv";
+        const SEASONS = ["зима", "весна", "лето", "осень"];
+        const ACTIVITY_ORDER = { "низкая": 1, "средняя": 2, "высокая": 3 };
+        const TRANSPORT_COMPATIBILITY = {
+            "пешком": ["пешком", "общественный транспорт"],
+            "общественный транспорт": ["пешком", "общественный транспорт", "поезд"],
+            "поезд": ["поезд", "общественный транспорт"],
+            "авто": ["авто", "общественный транспорт"],
+            "самолет": ["самолет", "общественный транспорт"],
+            "велосипед": ["велосипед", "пешком"]
+        };
+        const ROUTE_TEMPLATES = [
+            { name: "Классический уикенд", type: "обзорный", interests: ["история", "архитектура", "музеи", "прогулки"], minDays: 2, maxDays: 3, activity: "низкая", transport: "общественный транспорт", cost: 1.00 },
+            { name: "Гастрономическое путешествие", type: "гастрономический", interests: ["гастрономия", "рынки", "кофейни", "национальная культура"], minDays: 2, maxDays: 4, activity: "низкая", transport: "пешком", cost: 1.18 },
+            { name: "Активный маршрут", type: "активный", interests: ["природа", "спорт", "треккинг", "горы", "велосипед"], minDays: 3, maxDays: 6, activity: "высокая", transport: "авто", cost: 1.25 },
+            { name: "Культурная программа", type: "культурный", interests: ["музеи", "театр", "история", "литература", "экскурсии"], minDays: 3, maxDays: 5, activity: "средняя", transport: "общественный транспорт", cost: 1.12 },
+            { name: "Семейный отдых", type: "семейный", interests: ["парки", "музеи", "природа", "прогулки", "оздоровление"], minDays: 4, maxDays: 7, activity: "низкая", transport: "авто", cost: 1.15 },
+            { name: "Фототур и необычные места", type: "фототур", interests: ["фото", "архитектура", "природа", "море", "набережные"], minDays: 2, maxDays: 5, activity: "средняя", transport: "пешком", cost: 1.08 }
+        ];
+
+        let cityProfiles = [];
+        let routes = [];
+
+        const elements = {
+            stats: document.querySelector("#stats"),
+            form: document.querySelector("#searchForm"),
+            region: document.querySelector("#region"),
+            city: document.querySelector("#city"),
+            season: document.querySelector("#season"),
+            days: document.querySelector("#days"),
+            budget: document.querySelector("#budget"),
+            interests: document.querySelector("#interests"),
+            transport: document.querySelector("#transport"),
+            activity: document.querySelector("#activity"),
+            climate: document.querySelector("#climate"),
+            accessible: document.querySelector("#accessible"),
+            results: document.querySelector("#results")
+        };
+
+        function parseCsv(text) {
+            const rows = [];
+            let row = [];
+            let value = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < text.length; i += 1) {
+                const char = text[i];
+                const next = text[i + 1];
+
+                if (char === '"' && inQuotes && next === '"') {
+                    value += '"';
+                    i += 1;
+                    continue;
+                }
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+                if (char === "," && !inQuotes) {
+                    row.push(value);
+                    value = "";
+                    continue;
+                }
+                if ((char === "\n" || char === "\r") && !inQuotes) {
+                    if (char === "\r" && next === "\n") {
+                        i += 1;
+                    }
+                    row.push(value);
+                    if (row.some((cell) => cell !== "")) {
+                        rows.push(row);
+                    }
+                    row = [];
+                    value = "";
+                    continue;
+                }
+                value += char;
+            }
+
+            if (value || row.length) {
+                row.push(value);
+                rows.push(row);
+            }
+
+            const headers = rows.shift() || [];
+            return rows.map((cells) => {
+                const item = {};
+                headers.forEach((header, index) => {
+                    item[header] = cells[index] || "";
+                });
+                return item;
+            });
+        }
+
+        function uniqueSorted(values) {
+            return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
+        }
+
+        function toInt(value, fallback = 0) {
+            const parsed = Number.parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : fallback;
+        }
+
+        function toFloat(value, fallback = 0) {
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : fallback;
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function formatRegionName(regionType, region) {
+            if (!region) {
+                return "Регион не указан";
+            }
+            if (regionType === "г") {
+                return region;
+            }
+            if (regionType === "Чувашия") {
+                return "Чувашская Республика";
+            }
+            if (regionType === "Респ") {
+                return `Республика ${region}`;
+            }
+            if (regionType === "обл") {
+                return `${region} область`;
+            }
+            if (regionType === "край") {
+                return `${region} край`;
+            }
+            if (regionType === "АО") {
+                return `${region} автономный округ`;
+            }
+            if (regionType === "Аобл") {
+                return `${region} автономная область`;
+            }
+            return `${regionType} ${region}`.trim();
+        }
+
+        function inferClimate(row) {
+            const latitude = toFloat(row.geo_lat);
+            const district = row.federal_district;
+            const region = row.region;
+
+            if (latitude >= 66) {
+                return "арктический";
+            }
+            if (district === "Северо-Кавказский" || ["Алтай", "Дагестан", "Кабардино-Балкария", "Карачаево-Черкесия"].includes(region)) {
+                return "горный";
+            }
+            if (district === "Южный" && latitude < 48) {
+                return "теплый";
+            }
+            if (["Дальневосточный", "Северо-Западный"].includes(district) && latitude < 60) {
+                return "прохладный";
+            }
+            if (latitude >= 58) {
+                return "прохладный";
+            }
+            return "континентальный";
+        }
+
+        function seasonsForClimate(climate) {
+            if (climate === "арктический") {
+                return ["лето", "зима"];
+            }
+            if (climate === "горный") {
+                return ["весна", "лето", "осень", "зима"];
+            }
+            if (climate === "теплый") {
+                return ["весна", "лето", "осень"];
+            }
+            if (climate === "прохладный") {
+                return ["лето", "осень", "зима"];
+            }
+            return ["весна", "лето", "осень"];
+        }
+
+        function scoreByPopulation(population, capitalMarker) {
+            let score = 4;
+            if (population >= 3000000) score = 10;
+            else if (population >= 1000000) score = 9;
+            else if (population >= 500000) score = 8;
+            else if (population >= 250000) score = 7;
+            else if (population >= 100000) score = 6;
+            else if (population >= 50000) score = 5;
+            if (capitalMarker >= 2) score += 1;
+            return clamp(score, 1, 10);
+        }
+
+        function tagsForCity(row, population) {
+            const tags = new Set(["история", "архитектура", "музеи", "городские прогулки"]);
+            const districtTags = {
+                "Центральный": ["история", "усадьбы", "музеи"],
+                "Северо-Западный": ["крепости", "озера", "природа"],
+                "Южный": ["гастрономия", "теплый климат", "реки"],
+                "Северо-Кавказский": ["горы", "оздоровление", "этнография"],
+                "Приволжский": ["волга", "национальная культура", "набережные"],
+                "Уральский": ["горы", "индустриальный туризм", "природа"],
+                "Сибирский": ["природа", "реки", "сибирская культура"],
+                "Дальневосточный": ["природа", "море", "экспедиции"]
+            };
+
+            if (population >= 300000) {
+                ["театр", "гастрономия", "набережные"].forEach((tag) => tags.add(tag));
+            }
+            if (population >= 1000000) {
+                ["шопинг", "выставки", "событийный туризм"].forEach((tag) => tags.add(tag));
+            }
+            (districtTags[row.federal_district] || []).forEach((tag) => tags.add(tag));
+
+            const keywords = `${row.city} ${row.region}`.toLowerCase();
+            if (["сочи", "анапа", "геленджик", "евпатория", "ялта", "севастополь"].some((word) => keywords.includes(word))) {
+                ["море", "пляж", "курорт"].forEach((tag) => tags.add(tag));
+            }
+            if (["алтай", "кавказ", "эльбрус", "пятигорск", "кисловодск"].some((word) => keywords.includes(word))) {
+                ["горы", "треккинг", "фото"].forEach((tag) => tags.add(tag));
+            }
+            if (["байкал", "иркутск", "улан-удэ"].some((word) => keywords.includes(word))) {
+                ["байкал", "озера", "природа"].forEach((tag) => tags.add(tag));
+            }
+            if (["казань", "уфа", "йошкар", "чебоксары", "дербент"].some((word) => keywords.includes(word))) {
+                ["национальная культура", "гастрономия"].forEach((tag) => tags.add(tag));
+            }
+            if (["новгород", "псков", "смоленск", "выборг"].some((word) => keywords.includes(word))) {
+                ["крепости", "храмы"].forEach((tag) => tags.add(tag));
+            }
+
+            return [...tags];
+        }
+
+        function buildCityProfiles(rows) {
+            const cityNameCounts = {};
+            rows.filter((row) => row.city).forEach((row) => {
+                cityNameCounts[row.city] = (cityNameCounts[row.city] || 0) + 1;
+            });
+
+            return rows
+                .filter((row) => row.city)
+                .map((row) => {
+                    const population = toInt(row.population);
+                    const capitalMarker = toInt(row.capital_marker);
+                    const region = formatRegionName(row.region_type, row.region);
+                    const climate = inferClimate(row);
+                    const popularity = scoreByPopulation(population, capitalMarker);
+                    const displayCity = cityNameCounts[row.city] === 1 ? row.city : `${row.city} (${region})`;
+                    let baseCost = 2600 + popularity * 260;
+
+                    if (capitalMarker >= 2) {
+                        baseCost += 500;
+                    }
+                    if (["Дальневосточный", "Северо-Западный"].includes(row.federal_district)) {
+                        baseCost += 350;
+                    }
+
+                    return {
+                        name: displayCity,
+                        region,
+                        climate,
+                        bestSeasons: seasonsForClimate(climate),
+                        baseCostPerDay: clamp(baseCost, 2800, 7600),
+                        popularity,
+                        accessibility: clamp(popularity + (capitalMarker >= 2 ? 1 : 0), 4, 10),
+                        tags: tagsForCity(row, population)
+                    };
+                });
+        }
+
+        function buildRouteDatabase(profiles) {
+            const database = [];
+            let routeId = 1;
+
+            profiles.forEach((city) => {
+                ROUTE_TEMPLATES.forEach((template) => {
+                    const duration = Math.min(template.maxDays, template.minDays + (city.popularity >= 8 ? 1 : 0));
+                    const price = Math.round((city.baseCostPerDay * duration * template.cost) / 100) * 100;
+                    const interests = uniqueSorted([...city.tags, ...template.interests]);
+
+                    database.push({
+                        routeId,
+                        title: `${city.name}: ${template.name}`,
+                        city: city.name,
+                        region: city.region,
+                        seasons: city.bestSeasons,
+                        durationDays: duration,
+                        price,
+                        interests,
+                        activityLevel: template.activity,
+                        transport: template.transport,
+                        climate: city.climate,
+                        popularity: city.popularity,
+                        accessibility: city.accessibility,
+                        description: `${capitalize(template.type)} маршрут по направлению ${city.name}: основные точки интереса, локальная культура и удобная логистика для туриста.`
+                    });
+                    routeId += 1;
+                });
+            });
+
+            return database;
+        }
+
+        function capitalize(value) {
+            return value.charAt(0).toUpperCase() + value.slice(1);
+        }
+
+        function normalize(value, min, max) {
+            if (max === min) {
+                return 1;
+            }
+            return clamp((value - min) / (max - min), 0, 1);
+        }
+
+        function jaccard(left, right) {
+            if (!left.length && !right.length) {
+                return 1;
+            }
+            if (!left.length || !right.length) {
+                return 0;
+            }
+            const leftSet = new Set(left);
+            const rightSet = new Set(right);
+            const intersection = [...leftSet].filter((item) => rightSet.has(item)).length;
+            const union = new Set([...leftSet, ...rightSet]).size;
+            return intersection / union;
+        }
+
+        function seasonScore(route, season) {
+            return route.seasons.includes(season) ? 1 : 0.15;
+        }
+
+        function durationScore(route, days) {
+            const difference = Math.abs(route.durationDays - days);
+            if (difference === 0) return 1;
+            if (difference === 1) return 0.75;
+            if (difference === 2) return 0.45;
+            return 0.15;
+        }
+
+        function budgetScore(route, maxBudget) {
+            if (route.price <= maxBudget) {
+                return 0.75 + 0.25 * normalize(maxBudget - route.price, 0, maxBudget);
+            }
+            return Math.max(0, 0.65 - normalize(route.price - maxBudget, 0, maxBudget) * 0.65);
+        }
+
+        function activityScore(route, activity) {
+            const difference = Math.abs(ACTIVITY_ORDER[route.activityLevel] - ACTIVITY_ORDER[activity]);
+            if (difference === 0) return 1;
+            if (difference === 1) return 0.65;
+            return 0.25;
+        }
+
+        function transportScore(route, transport) {
+            if (!transport) return 0.8;
+            if (route.transport === transport) return 1;
+            return (TRANSPORT_COMPATIBILITY[transport] || [transport]).includes(route.transport) ? 0.65 : 0.25;
+        }
+
+        function locationScore(route, profile) {
+            if (profile.city && route.city === profile.city) return 1;
+            if (profile.region && route.region === profile.region) return 0.8;
+            if (!profile.city && !profile.region) return 0.6;
+            return 0.25;
+        }
+
+        function climateScore(route, climate) {
+            if (!climate) return 0.7;
+            return route.climate === climate ? 1 : 0.35;
+        }
+
+        function accessibilityScore(route, accessible) {
+            if (!accessible) return normalize(route.accessibility, 1, 10);
+            return route.accessibility >= 8 ? 1 : normalize(route.accessibility, 1, 10) * 0.55;
+        }
+
+        function passesHardFilters(route, profile) {
+            if (profile.accessible && route.accessibility < 6) return false;
+            if (route.price > profile.budget * 1.25) return false;
+            if (Math.abs(route.durationDays - profile.days) > 3) return false;
+            return true;
+        }
+
+        function scoreRoute(route, profile) {
+            const parts = {
+                location: locationScore(route, profile),
+                season: seasonScore(route, profile.season),
+                budget: budgetScore(route, profile.budget),
+                duration: durationScore(route, profile.days),
+                interests: profile.interests.length ? jaccard(route.interests, profile.interests) : 0.55,
+                activity: activityScore(route, profile.activity),
+                transport: transportScore(route, profile.transport),
+                climate: climateScore(route, profile.climate),
+                accessibility: accessibilityScore(route, profile.accessible),
+                popularity: normalize(route.popularity, 1, 10)
+            };
+            const weights = {
+                location: 0.14,
+                season: 0.13,
+                budget: 0.16,
+                duration: 0.11,
+                interests: 0.20,
+                activity: 0.08,
+                transport: 0.06,
+                climate: 0.04,
+                accessibility: 0.04,
+                popularity: 0.04
+            };
+            const score = Object.keys(weights).reduce((sum, key) => sum + parts[key] * weights[key], 0) * 100;
+            return {
+                route,
+                score: Math.round(score * 100) / 100,
+                explanation: buildExplanation(route, profile, parts)
+            };
+        }
+
+        function buildExplanation(route, profile, parts) {
+            const explanation = [];
+            if (parts.season >= 0.9) explanation.push(`подходит для сезона: ${profile.season}`);
+            if (parts.budget >= 0.75) explanation.push(`укладывается в бюджет: ${route.price} руб. <= ${profile.budget} руб.`);
+            if (parts.interests > 0 && profile.interests.length) {
+                const matched = route.interests.filter((item) => profile.interests.includes(item));
+                explanation.push(`совпадающие интересы: ${matched.slice(0, 5).join(", ")}`);
+            }
+            if (parts.duration >= 0.75) explanation.push(`длительность близка к запросу: ${route.durationDays} дн.`);
+            if (parts.location >= 0.8) explanation.push(`совпадает направление: ${route.city}, ${route.region}`);
+            if (parts.transport >= 0.65) explanation.push(`подходящий транспорт: ${route.transport}`);
+            if (profile.accessible && route.accessibility >= 8) explanation.push("маршрут имеет высокий показатель доступности");
+            return explanation.length ? explanation : ["маршрут получил высокую суммарную оценку по нескольким параметрам"];
+        }
+
+        function recommend(profile) {
+            return routes
+                .filter((route) => passesHardFilters(route, profile))
+                .map((route) => scoreRoute(route, profile))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 10);
+        }
+
+        function option(value, label = value) {
+            const item = document.createElement("option");
+            item.value = value;
+            item.textContent = label;
+            return item;
+        }
+
+        function fillSelect(select, values, firstLabel) {
+            select.innerHTML = "";
+            select.appendChild(option("", firstLabel));
+            values.forEach((value) => select.appendChild(option(value)));
+        }
+
+        function fillMultiSelect(select, values) {
+            select.innerHTML = "";
+            values.forEach((value) => select.appendChild(option(value)));
+        }
+
+        function selectedMultiValues(select) {
+            return [...select.selectedOptions].map((item) => item.value);
+        }
+
+        function updateCityOptions() {
+            const region = elements.region.value;
+            const cities = uniqueSorted(cityProfiles
+                .filter((city) => !region || city.region === region)
+                .map((city) => city.name));
+            const currentCity = elements.city.value;
+            fillSelect(elements.city, cities, "Любой город");
+            if (cities.includes(currentCity)) {
+                elements.city.value = currentCity;
+            }
+        }
+
+        function validateProfile(profile) {
+            const errors = [];
+            if (!Number.isInteger(profile.days) || profile.days < 1 || profile.days > 14) {
+                errors.push("Количество дней должно быть от 1 до 14.");
+            }
+            if (!Number.isInteger(profile.budget) || profile.budget < 3000 || profile.budget > 200000) {
+                errors.push("Бюджет должен быть от 3000 до 200000 рублей.");
+            }
+            if (profile.interests.length > 5) {
+                errors.push("Выберите не более 5 интересов.");
+            }
+            return errors;
+        }
+
+        function readProfile() {
+            return {
+                region: elements.region.value,
+                city: elements.city.value,
+                season: elements.season.value,
+                days: toInt(elements.days.value, 4),
+                budget: toInt(elements.budget.value, 23000),
+                interests: selectedMultiValues(elements.interests),
+                transport: elements.transport.value,
+                activity: elements.activity.value,
+                climate: elements.climate.value,
+                accessible: elements.accessible.checked
+            };
+        }
+
+        function renderMessage(message, isError = false) {
+            elements.results.innerHTML = `<div class="message ${isError ? "message--error" : ""}">${escapeHtml(message)}</div>`;
+        }
+
+        function renderRecommendations(recommendations) {
+            if (!recommendations.length) {
+                renderMessage("По заданным условиям маршруты не найдены. Попробуйте увеличить бюджет, выбрать другой сезон или убрать часть ограничений.");
+                return;
+            }
+
+            elements.results.innerHTML = recommendations.map(({ route, score, explanation }) => {
+                const reasons = explanation.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("");
+                return `
+                    <article class="route-card">
+                        <div class="route-card__main">
+                            <div>
+                                <p class="eyebrow">${escapeHtml(route.region)} / ${escapeHtml(route.city)}</p>
+                                <h2>${escapeHtml(route.title)}</h2>
+                            </div>
+                            <strong class="score">${score}/100</strong>
+                        </div>
+                        <p class="description">${escapeHtml(route.description)}</p>
+                        <div class="facts">
+                            <span>${route.durationDays} дн.</span>
+                            <span>${route.price} руб.</span>
+                            <span>${escapeHtml(route.transport)}</span>
+                            <span>${escapeHtml(route.activityLevel)} активность</span>
+                        </div>
+                        <dl class="details">
+                            <div><dt>Сезоны</dt><dd>${escapeHtml(route.seasons.slice().sort().join(", "))}</dd></div>
+                            <div><dt>Интересы</dt><dd>${escapeHtml(route.interests.slice(0, 8).join(", "))}</dd></div>
+                        </dl>
+                        <div class="reasons">
+                            <h3>Почему подходит</h3>
+                            <ul>${reasons}</ul>
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function submitSearch() {
+            const profile = readProfile();
+            const errors = validateProfile(profile);
+            if (errors.length) {
+                renderMessage(errors.join(" "), true);
+                return;
+            }
+            renderRecommendations(recommend(profile));
+        }
+
+        async function init() {
+            try {
+                const response = await fetch(CITY_CSV_PATH);
+                if (!response.ok) {
+                    throw new Error("CSV file was not loaded");
+                }
+
+                const csvText = await response.text();
+                cityProfiles = buildCityProfiles(parseCsv(csvText));
+                routes = buildRouteDatabase(cityProfiles);
+
+                fillSelect(elements.region, uniqueSorted(cityProfiles.map((city) => city.region)), "Любой регион");
+                updateCityOptions();
+                fillMultiSelect(elements.interests, uniqueSorted(routes.flatMap((route) => route.interests)));
+                fillSelect(elements.transport, uniqueSorted(routes.map((route) => route.transport)), "Любой транспорт");
+                fillSelect(elements.climate, uniqueSorted(routes.map((route) => route.climate)), "Любой климат");
+
+                elements.region.value = "Ставропольский край";
+                updateCityOptions();
+                ["горы", "история", "природа"].forEach((interest) => {
+                    const item = [...elements.interests.options].find((optionItem) => optionItem.value === interest);
+                    if (item) item.selected = true;
+                });
+
+                elements.stats.textContent = `${routes.length} маршрутов / ${cityProfiles.length} городов / ${uniqueSorted(cityProfiles.map((city) => city.region)).length} регионов`;
+                submitSearch();
+            } catch (error) {
+                elements.stats.textContent = "База не загружена";
+                renderMessage("Не удалось загрузить data/city.csv. На GitHub Pages страница работает после публикации репозитория.", true);
+            }
+        }
+
+        elements.region.addEventListener("change", updateCityOptions);
+        elements.form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            submitSearch();
+        });
+
+        init();
+    </script>
+</body>
+</html>
