@@ -129,6 +129,77 @@ TRANSPORT_COMPATIBILITY = {
     "велосипед": {"велосипед", "пешком"},
 }
 
+CRITERIA_WEIGHTS = {
+    "location": 0.14,
+    "season": 0.13,
+    "budget": 0.16,
+    "duration": 0.11,
+    "interests": 0.20,
+    "activity": 0.08,
+    "transport": 0.06,
+    "climate": 0.04,
+    "accessibility": 0.04,
+    "popularity": 0.04,
+}
+
+CRITERIA_LABELS = {
+    "interests": "Соответствие интересам туриста",
+    "budget": "Бюджет поездки",
+    "location": "Желаемое направление",
+    "season": "Сезонность маршрута",
+    "duration": "Длительность поездки",
+    "activity": "Уровень активности",
+    "transport": "Транспортная доступность",
+    "climate": "Климатические предпочтения",
+    "accessibility": "Доступная среда",
+    "popularity": "Популярность и инфраструктура",
+}
+
+CRITERIA_SUBLEVELS = {
+    "interests": [
+        "совпадение туристических интересов",
+        "тематические признаки города",
+        "тип маршрута",
+    ],
+    "budget": [
+        "стоимость маршрута",
+        "запас относительно бюджета пользователя",
+    ],
+    "location": [
+        "совпадение города",
+        "совпадение региона",
+    ],
+    "season": [
+        "подходит ли сезон поездки",
+        "допустимость круглогодичного маршрута",
+    ],
+    "duration": [
+        "совпадение количества дней",
+        "допустимое отклонение длительности",
+    ],
+    "activity": [
+        "низкая активность",
+        "средняя активность",
+        "высокая активность",
+    ],
+    "transport": [
+        "полное совпадение транспорта",
+        "совместимый альтернативный транспорт",
+    ],
+    "climate": [
+        "совпадение желаемого климата",
+        "нейтральный климатический выбор",
+    ],
+    "accessibility": [
+        "уровень доступности маршрута",
+        "обязательное требование доступной среды",
+    ],
+    "popularity": [
+        "популярность города",
+        "развитость туристической инфраструктуры",
+    ],
+}
+
 
 def build_fallback_city_profiles() -> List[CityProfile]:
     """Возвращает 40 направлений. Эти данные имитируют экспертную базу."""
@@ -608,20 +679,7 @@ def score_route(route: TouristRoute, profile: UserProfile) -> Recommendation:
         "popularity": normalize(route.popularity, 1, 10),
     }
 
-    weights = {
-        "location": 0.14,
-        "season": 0.13,
-        "budget": 0.16,
-        "duration": 0.11,
-        "interests": 0.20,
-        "activity": 0.08,
-        "transport": 0.06,
-        "climate": 0.04,
-        "accessibility": 0.04,
-        "popularity": 0.04,
-    }
-
-    total_score = sum(parts[name] * weights[name] for name in weights)
+    total_score = sum(parts[name] * CRITERIA_WEIGHTS[name] for name in CRITERIA_WEIGHTS)
     explanation = build_explanation(route, profile, parts)
     return Recommendation(route=route, score=round(total_score * 100, 2), explanation=explanation)
 
@@ -718,6 +776,43 @@ def print_recommendations(recommendations: Iterable[Recommendation]) -> None:
         for reason in recommendation.explanation:
             print(f"   - {reason}")
         print()
+
+
+def print_recommendation_hierarchy() -> None:
+    """Показывает иерархическую модель выбора маршрута."""
+
+    print("Иерархия рекомендательной модели")
+    print("-" * 72)
+    print("Цель: подобрать оптимальный туристический маршрут")
+    print()
+    print("Уровень 1. Критерии и веса")
+
+    sorted_criteria = sorted(
+        CRITERIA_WEIGHTS.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
+    for index, (criterion_key, weight) in enumerate(sorted_criteria, start=1):
+        label = CRITERIA_LABELS[criterion_key]
+        print(f"{index}. {label}: {weight:.2f} ({weight * 100:.0f}%)")
+
+    print()
+    print("Уровень 2. Подкритерии")
+    for criterion_key, _ in sorted_criteria:
+        label = CRITERIA_LABELS[criterion_key]
+        print(f"{label}:")
+        for subcriterion in CRITERIA_SUBLEVELS[criterion_key]:
+            print(f"   - {subcriterion}")
+
+    print()
+    print("Уровень 3. Альтернативы")
+    print("Альтернативами являются конкретные маршруты из базы:")
+    print("город + тип маршрута + сезон + длительность + цена + транспорт.")
+    print()
+    print("Итоговая формула:")
+    print("score = сумма(оценка_критерия * вес_критерия) * 100")
+    print()
 
 
 def demo_profile() -> UserProfile:
@@ -968,10 +1063,11 @@ def ask_start_mode() -> str:
         print("Режимы запуска:")
         print("1 - демо-профиль")
         print("2 - подобрать маршрут через форму выбора")
-        mode = input("Выберите режим (1/2): ").strip() or "1"
-        if mode in {"1", "2"}:
+        print("3 - показать иерархию рекомендательной модели")
+        mode = input("Выберите режим (1/2/3): ").strip() or "1"
+        if mode in {"1", "2", "3"}:
             return mode
-        print("Ошибка: выберите 1 или 2.")
+        print("Ошибка: выберите 1, 2 или 3.")
         print()
 
 
@@ -980,6 +1076,11 @@ def main() -> None:
     print_available_conditions(routes)
 
     mode = ask_start_mode()
+
+    if mode == "3":
+        print()
+        print_recommendation_hierarchy()
+        return
 
     profile = interactive_profile(routes) if mode == "2" else demo_profile()
     recommendations = recommend_routes(routes, profile, top_n=10)
