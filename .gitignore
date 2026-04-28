@@ -4,3 +4,5 @@ __pycache__/
 tmp/
 reference_docs/
 docs/generated/render_check/
+node_modules/
+outputs/
