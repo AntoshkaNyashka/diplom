@@ -233,6 +233,10 @@ def render_page(
     selected_interests = form.get("interests", [])
     if not isinstance(selected_interests, list):
         selected_interests = []
+    interest_summary = "".join(f"<span>{escape(item)}</span>" for item in selected_interests)
+    if not interest_summary:
+        interest_summary = "<span>Любые интересы</span>"
+    interest_count = f"{len(selected_interests)} из 5"
 
     accessible_checked = " checked" if form.get("accessible") else ""
 
@@ -347,6 +351,41 @@ def render_page(
             font: inherit;
             background: #fff;
         }}
+        .interest-field {{
+            display: grid;
+            gap: 8px;
+        }}
+        .field-title {{
+            font-size: 14px;
+            font-weight: 700;
+        }}
+        .interest-picker-row,
+        .form-actions,
+        .modal-actions {{
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }}
+        .selected-tags {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 28px;
+        }}
+        .selected-tags span {{
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 9px;
+            background: #f8fafc;
+            font-size: 12px;
+            font-weight: 700;
+        }}
+        .interest-count {{
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }}
         .checkbox-panel {{
             max-height: 190px;
             overflow-y: auto;
@@ -370,6 +409,13 @@ def render_page(
         }}
         .checkbox-option:hover {{
             background: #eef6ff;
+        }}
+        .checkbox-option.is-disabled {{
+            color: var(--muted);
+            cursor: default;
+        }}
+        .checkbox-option.is-disabled:hover {{
+            background: transparent;
         }}
         .checkbox-option input {{
             flex: 0 0 auto;
@@ -396,6 +442,86 @@ def render_page(
             cursor: pointer;
         }}
         .submit:hover {{ background: var(--blue-dark); }}
+        .secondary-button {{
+            min-height: 40px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px 12px;
+            background: #fff;
+            color: var(--text);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .secondary-button:hover {{
+            border-color: var(--blue);
+            color: var(--blue);
+        }}
+        .form-actions .submit {{
+            flex: 1 1 190px;
+        }}
+        .modal-backdrop {{
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgb(31 41 51 / 58%);
+        }}
+        .modal-backdrop[hidden] {{
+            display: none;
+        }}
+        .modal {{
+            width: min(560px, 100%);
+            max-height: min(680px, 92vh);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 24px 60px rgb(31 41 51 / 28%);
+        }}
+        .modal-header,
+        .modal-footer {{
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+        }}
+        .modal-header {{
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: center;
+        }}
+        .modal-header h3 {{
+            margin: 0;
+            font-size: 19px;
+        }}
+        .modal-close {{
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fff;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }}
+        .modal-body {{
+            overflow: auto;
+            padding: 16px 18px;
+        }}
+        .modal-body .checkbox-panel {{
+            max-height: 390px;
+        }}
+        .modal-footer {{
+            border-top: 1px solid var(--line);
+            border-bottom: 0;
+        }}
         .results {{
             display: grid;
             gap: 16px;
@@ -551,12 +677,15 @@ def render_page(
                     <input name="budget" type="number" min="3000" max="200000" step="500" value="{escape(form.get("budget", "20000"))}">
                 </label>
 
-                <label>Интересы
-                    <div class="checkbox-panel">
-                        {checkbox_tags(options["interests"], selected_interests)}
+                <div class="interest-field">
+                    <span class="field-title">Интересы</span>
+                    <div class="interest-picker-row">
+                        <button class="secondary-button" type="button" id="openInterests">Выбрать интересы</button>
+                        <span class="interest-count" id="interestCount">{escape(interest_count)}</span>
                     </div>
-                    <span class="hint">Можно выбрать до 5 вариантов. Если ничего не выбрать, интересы считаются любыми.</span>
-                </label>
+                    <div class="selected-tags" id="interestSummary">{interest_summary}</div>
+                    <span class="hint" id="interestHint">Можно выбрать до 5 вариантов. Если ничего не выбрать, интересы считаются любыми.</span>
+                </div>
 
                 <label>Транспорт
                     <select name="transport">
@@ -581,7 +710,34 @@ def render_page(
                     Нужна доступная среда
                 </label>
 
-                <button class="submit" type="submit">Найти маршруты</button>
+                <div class="form-actions">
+                    <button class="submit" type="submit">Найти маршруты</button>
+                    <a class="secondary-button" href="/">Сбросить фильтры</a>
+                </div>
+
+                <div class="modal-backdrop" id="interestModal" hidden>
+                    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="interestModalTitle">
+                        <header class="modal-header">
+                            <div>
+                                <h3 id="interestModalTitle">Выбор интересов</h3>
+                                <p class="hint">Отметьте до 5 направлений, которые важны для маршрута.</p>
+                            </div>
+                            <button class="modal-close" type="button" id="closeInterests" aria-label="Закрыть">×</button>
+                        </header>
+                        <div class="modal-body">
+                            <div class="checkbox-panel" id="interests">
+                                {checkbox_tags(options["interests"], selected_interests)}
+                            </div>
+                        </div>
+                        <footer class="modal-footer">
+                            <div class="modal-actions">
+                                <button class="submit" type="button" id="doneInterests">Готово</button>
+                                <button class="secondary-button" type="button" id="clearInterests">Очистить интересы</button>
+                            </div>
+                            <p class="hint" id="interestLimitMessage"></p>
+                        </footer>
+                    </section>
+                </div>
             </form>
         </aside>
 
@@ -593,8 +749,19 @@ def render_page(
 
     <script>
         const cityRegionMap = {json.dumps(city_region_map, ensure_ascii=False)};
+        const maxInterests = 5;
         const regionSelect = document.querySelector("#region");
         const citySelect = document.querySelector("#city");
+        const interestPanel = document.querySelector("#interests");
+        const interestModal = document.querySelector("#interestModal");
+        const openInterests = document.querySelector("#openInterests");
+        const closeInterests = document.querySelector("#closeInterests");
+        const doneInterests = document.querySelector("#doneInterests");
+        const clearInterests = document.querySelector("#clearInterests");
+        const interestCount = document.querySelector("#interestCount");
+        const interestSummary = document.querySelector("#interestSummary");
+        const interestHint = document.querySelector("#interestHint");
+        const interestLimitMessage = document.querySelector("#interestLimitMessage");
 
         function filterCities() {{
             const selectedRegion = regionSelect.value;
@@ -611,8 +778,79 @@ def render_page(
             }}
         }}
 
+        function escapeHtml(value) {{
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }}
+
+        function selectedInterestValues() {{
+            return [...interestPanel.querySelectorAll("input[type='checkbox']:checked")].map((item) => item.value);
+        }}
+
+        function updateInterestState() {{
+            const selected = selectedInterestValues();
+            const limitReached = selected.length >= maxInterests;
+            interestCount.textContent = selected.length + " из " + maxInterests;
+            interestSummary.innerHTML = selected.length
+                ? selected.map((value) => "<span>" + escapeHtml(value) + "</span>").join("")
+                : "<span>Любые интересы</span>";
+            interestHint.textContent = limitReached
+                ? "Выбрано " + maxInterests + " интересов. Чтобы выбрать другой, сначала снимите одну галочку."
+                : "Можно выбрать еще " + (maxInterests - selected.length) + ". Если ничего не выбрать, интересы считаются любыми.";
+
+            for (const checkbox of interestPanel.querySelectorAll("input[type='checkbox']")) {{
+                checkbox.disabled = limitReached && !checkbox.checked;
+                checkbox.closest(".checkbox-option").classList.toggle("is-disabled", checkbox.disabled);
+            }}
+        }}
+
+        function openInterestModal() {{
+            interestModal.hidden = false;
+        }}
+
+        function closeInterestModal() {{
+            interestModal.hidden = true;
+        }}
+
+        for (const checkbox of interestPanel.querySelectorAll("input[type='checkbox']")) {{
+            checkbox.addEventListener("change", () => {{
+                if (checkbox.checked && selectedInterestValues().length > maxInterests) {{
+                    checkbox.checked = false;
+                    interestLimitMessage.textContent = "Можно выбрать не более " + maxInterests + " интересов.";
+                }} else {{
+                    interestLimitMessage.textContent = "";
+                }}
+                updateInterestState();
+            }});
+        }}
+
+        openInterests.addEventListener("click", openInterestModal);
+        closeInterests.addEventListener("click", closeInterestModal);
+        doneInterests.addEventListener("click", closeInterestModal);
+        clearInterests.addEventListener("click", () => {{
+            for (const checkbox of interestPanel.querySelectorAll("input[type='checkbox']")) {{
+                checkbox.checked = false;
+            }}
+            interestLimitMessage.textContent = "";
+            updateInterestState();
+        }});
+        interestModal.addEventListener("click", (event) => {{
+            if (event.target === interestModal) {{
+                closeInterestModal();
+            }}
+        }});
+        document.addEventListener("keydown", (event) => {{
+            if (event.key === "Escape" && !interestModal.hidden) {{
+                closeInterestModal();
+            }}
+        }});
         regionSelect.addEventListener("change", filterCities);
         filterCities();
+        updateInterestState();
     </script>
 </body>
 </html>"""

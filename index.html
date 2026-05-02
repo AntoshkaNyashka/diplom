@@ -142,6 +142,48 @@
             font: inherit;
         }
 
+        .interest-field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .interest-picker-row,
+        .form-actions,
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 28px;
+        }
+
+        .selected-tags span {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 9px;
+            background: #f8fafc;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .interest-count {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
         .checkbox-panel {
             max-height: 190px;
             overflow-y: auto;
@@ -167,6 +209,15 @@
 
         .checkbox-option:hover {
             background: #eef6ff;
+        }
+
+        .checkbox-option.is-disabled {
+            color: var(--muted);
+            cursor: default;
+        }
+
+        .checkbox-option.is-disabled:hover {
+            background: transparent;
         }
 
         .checkbox-option input {
@@ -200,6 +251,96 @@
 
         .submit:hover {
             background: var(--blue-dark);
+        }
+
+        .secondary-button {
+            min-height: 40px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px 12px;
+            background: #fff;
+            color: var(--text);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .secondary-button:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        .form-actions .submit {
+            flex: 1 1 190px;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgb(31 41 51 / 58%);
+        }
+
+        .modal-backdrop[hidden] {
+            display: none;
+        }
+
+        .modal {
+            width: min(560px, 100%);
+            max-height: min(680px, 92vh);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: 0 24px 60px rgb(31 41 51 / 28%);
+        }
+
+        .modal-header,
+        .modal-footer {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        .modal-close {
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fff;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            overflow: auto;
+            padding: 16px 18px;
+        }
+
+        .modal-body .checkbox-panel {
+            max-height: 390px;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--line);
+            border-bottom: 0;
         }
 
         .results {
@@ -399,10 +540,15 @@
                     <input id="budget" type="number" min="3000" max="200000" step="500" value="23000">
                 </label>
 
-                <label>Интересы
-                    <div class="checkbox-panel" id="interests"></div>
-                    <span class="hint">До 5 вариантов. Без выбора система учитывает любые интересы.</span>
-                </label>
+                <div class="interest-field">
+                    <span class="field-title">Интересы</span>
+                    <div class="interest-picker-row">
+                        <button class="secondary-button" type="button" id="openInterests">Выбрать интересы</button>
+                        <span class="interest-count" id="interestCount">0 из 5</span>
+                    </div>
+                    <div class="selected-tags" id="interestSummary"></div>
+                    <span class="hint" id="interestHint">До 5 вариантов. Без выбора система учитывает любые интересы.</span>
+                </div>
 
                 <label>Транспорт
                     <select id="transport">
@@ -429,7 +575,10 @@
                     Нужна доступная среда
                 </label>
 
-                <button class="submit" type="submit">Найти маршруты</button>
+                <div class="form-actions">
+                    <button class="submit" type="submit">Найти маршруты</button>
+                    <button class="secondary-button" type="button" id="resetFilters">Сбросить фильтры</button>
+                </div>
             </form>
         </aside>
 
@@ -437,6 +586,28 @@
             <div class="message">База маршрутов загружается.</div>
         </section>
     </main>
+
+    <div class="modal-backdrop" id="interestModal" hidden>
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="interestModalTitle">
+            <header class="modal-header">
+                <div>
+                    <h3 id="interestModalTitle">Выбор интересов</h3>
+                    <p class="hint">Отметьте до 5 направлений, которые важны для маршрута.</p>
+                </div>
+                <button class="modal-close" type="button" id="closeInterests" aria-label="Закрыть">×</button>
+            </header>
+            <div class="modal-body">
+                <div class="checkbox-panel" id="interests"></div>
+            </div>
+            <footer class="modal-footer">
+                <div class="modal-actions">
+                    <button class="submit" type="button" id="doneInterests">Готово</button>
+                    <button class="secondary-button" type="button" id="clearInterests">Очистить интересы</button>
+                </div>
+                <p class="hint" id="interestLimitMessage"></p>
+            </footer>
+        </section>
+    </div>
 
     <script>
         const CITY_CSV_PATH = "data/city.csv";
@@ -463,6 +634,31 @@
 
         let cityProfiles = [];
         let routes = [];
+        const MAX_INTERESTS = 5;
+        const RESET_FILTERS = {
+            region: "",
+            city: "",
+            season: "лето",
+            days: "4",
+            budget: "23000",
+            interests: [],
+            transport: "",
+            activity: "средняя",
+            climate: "",
+            accessible: false
+        };
+        const DEMO_FILTERS = {
+            region: "Ставропольский край",
+            city: "",
+            season: "лето",
+            days: "4",
+            budget: "23000",
+            interests: ["горы", "история", "природа"],
+            transport: "",
+            activity: "средняя",
+            climate: "",
+            accessible: false
+        };
 
         const elements = {
             stats: document.querySelector("#stats"),
@@ -473,11 +669,21 @@
             days: document.querySelector("#days"),
             budget: document.querySelector("#budget"),
             interests: document.querySelector("#interests"),
+            interestModal: document.querySelector("#interestModal"),
+            openInterests: document.querySelector("#openInterests"),
+            closeInterests: document.querySelector("#closeInterests"),
+            doneInterests: document.querySelector("#doneInterests"),
+            clearInterests: document.querySelector("#clearInterests"),
+            interestCount: document.querySelector("#interestCount"),
+            interestSummary: document.querySelector("#interestSummary"),
+            interestHint: document.querySelector("#interestHint"),
+            interestLimitMessage: document.querySelector("#interestLimitMessage"),
             transport: document.querySelector("#transport"),
             activity: document.querySelector("#activity"),
             climate: document.querySelector("#climate"),
             accessible: document.querySelector("#accessible"),
-            results: document.querySelector("#results")
+            results: document.querySelector("#results"),
+            resetFilters: document.querySelector("#resetFilters")
         };
 
         function parseCsv(text) {
@@ -903,14 +1109,77 @@
                 checkbox.type = "checkbox";
                 checkbox.value = value;
                 checkbox.name = "interests";
+                checkbox.addEventListener("change", () => {
+                    if (checkbox.checked && selectedInterestValues(container).length > MAX_INTERESTS) {
+                        checkbox.checked = false;
+                        elements.interestLimitMessage.textContent = `Можно выбрать не более ${MAX_INTERESTS} интересов.`;
+                    } else {
+                        elements.interestLimitMessage.textContent = "";
+                    }
+                    updateInterestState();
+                });
                 label.appendChild(checkbox);
                 label.appendChild(document.createTextNode(value));
                 container.appendChild(label);
             });
+            updateInterestState();
         }
 
         function selectedInterestValues(container) {
             return [...container.querySelectorAll("input[type='checkbox']:checked")].map((item) => item.value);
+        }
+
+        function updateInterestState() {
+            const selected = selectedInterestValues(elements.interests);
+            const limitReached = selected.length >= MAX_INTERESTS;
+            elements.interestCount.textContent = `${selected.length} из ${MAX_INTERESTS}`;
+            elements.interestSummary.innerHTML = selected.length
+                ? selected.map((value) => `<span>${escapeHtml(value)}</span>`).join("")
+                : "<span>Любые интересы</span>";
+            elements.interestHint.textContent = limitReached
+                ? `Выбрано ${MAX_INTERESTS} интересов. Чтобы выбрать другой, сначала снимите одну галочку.`
+                : `Можно выбрать еще ${MAX_INTERESTS - selected.length}. Без выбора система учитывает любые интересы.`;
+
+            [...elements.interests.querySelectorAll("input[type='checkbox']")].forEach((checkbox) => {
+                checkbox.disabled = limitReached && !checkbox.checked;
+                checkbox.closest(".checkbox-option").classList.toggle("is-disabled", checkbox.disabled);
+            });
+        }
+
+        function setSelectedInterests(values) {
+            const selected = new Set(values.slice(0, MAX_INTERESTS));
+            [...elements.interests.querySelectorAll("input[type='checkbox']")].forEach((checkbox) => {
+                checkbox.checked = selected.has(checkbox.value);
+            });
+            elements.interestLimitMessage.textContent = "";
+            updateInterestState();
+        }
+
+        function openInterestModal() {
+            elements.interestModal.hidden = false;
+        }
+
+        function closeInterestModal() {
+            elements.interestModal.hidden = true;
+        }
+
+        function applyFilterValues(filters) {
+            elements.region.value = filters.region;
+            updateCityOptions();
+            elements.city.value = filters.city;
+            elements.season.value = filters.season;
+            elements.days.value = filters.days;
+            elements.budget.value = filters.budget;
+            elements.transport.value = filters.transport;
+            elements.activity.value = filters.activity;
+            elements.climate.value = filters.climate;
+            elements.accessible.checked = filters.accessible;
+            setSelectedInterests(filters.interests);
+        }
+
+        function resetFilters() {
+            applyFilterValues(RESET_FILTERS);
+            submitSearch();
         }
 
         function updateCityOptions() {
@@ -1031,12 +1300,7 @@
                 fillSelect(elements.transport, uniqueSorted(routes.map((route) => route.transport)), "Любой транспорт");
                 fillSelect(elements.climate, uniqueSorted(routes.map((route) => route.climate)), "Любой климат");
 
-                elements.region.value = "Ставропольский край";
-                updateCityOptions();
-                ["горы", "история", "природа"].forEach((interest) => {
-                    const item = [...elements.interests.querySelectorAll("input[type='checkbox']")].find((optionItem) => optionItem.value === interest);
-                    if (item) item.checked = true;
-                });
+                applyFilterValues(DEMO_FILTERS);
 
                 elements.stats.textContent = `${routes.length} маршрутов / ${cityProfiles.length} городов / ${uniqueSorted(cityProfiles.map((city) => city.region)).length} регионов`;
                 submitSearch();
@@ -1047,6 +1311,21 @@
         }
 
         elements.region.addEventListener("change", updateCityOptions);
+        elements.openInterests.addEventListener("click", openInterestModal);
+        elements.closeInterests.addEventListener("click", closeInterestModal);
+        elements.doneInterests.addEventListener("click", closeInterestModal);
+        elements.clearInterests.addEventListener("click", () => setSelectedInterests([]));
+        elements.resetFilters.addEventListener("click", resetFilters);
+        elements.interestModal.addEventListener("click", (event) => {
+            if (event.target === elements.interestModal) {
+                closeInterestModal();
+            }
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !elements.interestModal.hidden) {
+                closeInterestModal();
+            }
+        });
         elements.form.addEventListener("submit", (event) => {
             event.preventDefault();
             submitSearch();
