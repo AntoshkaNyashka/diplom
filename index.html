@@ -142,8 +142,35 @@
             font: inherit;
         }
 
-        select[multiple] {
-            min-height: 146px;
+        .checkbox-panel {
+            max-height: 190px;
+            overflow-y: auto;
+            display: grid;
+            gap: 4px;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 30px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        .checkbox-option:hover {
+            background: #eef6ff;
+        }
+
+        .checkbox-option input {
+            flex: 0 0 auto;
         }
 
         .hint {
@@ -373,7 +400,7 @@
                 </label>
 
                 <label>Интересы
-                    <select id="interests" multiple></select>
+                    <div class="checkbox-panel" id="interests"></div>
                     <span class="hint">До 5 вариантов. Без выбора система учитывает любые интересы.</span>
                 </label>
 
@@ -429,7 +456,9 @@
             { name: "Активный маршрут", type: "активный", interests: ["природа", "спорт", "треккинг", "горы", "велосипед"], minDays: 3, maxDays: 6, activity: "высокая", transport: "авто", cost: 1.25 },
             { name: "Культурная программа", type: "культурный", interests: ["музеи", "театр", "история", "литература", "экскурсии"], minDays: 3, maxDays: 5, activity: "средняя", transport: "общественный транспорт", cost: 1.12 },
             { name: "Семейный отдых", type: "семейный", interests: ["парки", "музеи", "природа", "прогулки", "оздоровление"], minDays: 4, maxDays: 7, activity: "низкая", transport: "авто", cost: 1.15 },
-            { name: "Фототур и необычные места", type: "фототур", interests: ["фото", "архитектура", "природа", "море", "набережные"], minDays: 2, maxDays: 5, activity: "средняя", transport: "пешком", cost: 1.08 }
+            { name: "Фототур и необычные места", type: "фототур", interests: ["фото", "архитектура", "природа", "море", "набережные"], minDays: 2, maxDays: 5, activity: "средняя", transport: "пешком", cost: 1.08 },
+            { name: "Недельный тур", type: "расширенный", interests: ["экскурсии", "природа", "гастрономия", "музеи", "прогулки"], minDays: 7, maxDays: 10, activity: "средняя", transport: "авто", cost: 1.10 },
+            { name: "Большое путешествие", type: "длительный", interests: ["экскурсии", "природа", "история", "фото", "национальная культура"], minDays: 12, maxDays: 14, activity: "средняя", transport: "поезд", cost: 1.05 }
         ];
 
         let cityProfiles = [];
@@ -789,8 +818,10 @@
 
         function passesHardFilters(route, profile) {
             if (profile.accessible && route.accessibility < 6) return false;
-            if (route.price > profile.budget * 1.25) return false;
-            if (Math.abs(route.durationDays - profile.days) > 3) return false;
+            const allowedBudgetMultiplier = profile.days >= 8 ? 2.0 : 1.25;
+            if (route.price > profile.budget * allowedBudgetMultiplier) return false;
+            const allowedDurationGap = profile.days >= 8 ? 5 : 3;
+            if (Math.abs(route.durationDays - profile.days) > allowedDurationGap) return false;
             return true;
         }
 
@@ -863,13 +894,23 @@
             values.forEach((value) => select.appendChild(option(value)));
         }
 
-        function fillMultiSelect(select, values) {
-            select.innerHTML = "";
-            values.forEach((value) => select.appendChild(option(value)));
+        function fillInterestCheckboxes(container, values) {
+            container.innerHTML = "";
+            values.forEach((value) => {
+                const label = document.createElement("label");
+                label.className = "checkbox-option";
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = value;
+                checkbox.name = "interests";
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(value));
+                container.appendChild(label);
+            });
         }
 
-        function selectedMultiValues(select) {
-            return [...select.selectedOptions].map((item) => item.value);
+        function selectedInterestValues(container) {
+            return [...container.querySelectorAll("input[type='checkbox']:checked")].map((item) => item.value);
         }
 
         function updateCityOptions() {
@@ -905,7 +946,7 @@
                 season: elements.season.value,
                 days: toInt(elements.days.value, 4),
                 budget: toInt(elements.budget.value, 23000),
-                interests: selectedMultiValues(elements.interests),
+                interests: selectedInterestValues(elements.interests),
                 transport: elements.transport.value,
                 activity: elements.activity.value,
                 climate: elements.climate.value,
@@ -986,15 +1027,15 @@
 
                 fillSelect(elements.region, uniqueSorted(cityProfiles.map((city) => city.region)), "Любой регион");
                 updateCityOptions();
-                fillMultiSelect(elements.interests, uniqueSorted(routes.flatMap((route) => route.interests)));
+                fillInterestCheckboxes(elements.interests, uniqueSorted(routes.flatMap((route) => route.interests)));
                 fillSelect(elements.transport, uniqueSorted(routes.map((route) => route.transport)), "Любой транспорт");
                 fillSelect(elements.climate, uniqueSorted(routes.map((route) => route.climate)), "Любой климат");
 
                 elements.region.value = "Ставропольский край";
                 updateCityOptions();
                 ["горы", "история", "природа"].forEach((interest) => {
-                    const item = [...elements.interests.options].find((optionItem) => optionItem.value === interest);
-                    if (item) item.selected = true;
+                    const item = [...elements.interests.querySelectorAll("input[type='checkbox']")].find((optionItem) => optionItem.value === interest);
+                    if (item) item.checked = true;
                 });
 
                 elements.stats.textContent = `${routes.length} маршрутов / ${cityProfiles.length} городов / ${uniqueSorted(cityProfiles.map((city) => city.region)).length} регионов`;

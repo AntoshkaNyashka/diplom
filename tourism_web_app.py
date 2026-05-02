@@ -60,14 +60,21 @@ def option_tags(options: Sequence[str], selected: Optional[str], *, include_any:
     return "\n".join(tags)
 
 
-def multi_option_tags(options: Sequence[str], selected_values: Sequence[str]) -> str:
-    """Создает option-теги для выбора нескольких интересов."""
+def checkbox_tags(options: Sequence[str], selected_values: Sequence[str]) -> str:
+    """Создает чекбоксы для выбора интересов."""
 
     selected_set = set(selected_values)
     tags = []
     for option in options:
-        is_selected = " selected" if option in selected_set else ""
-        tags.append(f'<option value="{escape(option)}"{is_selected}>{escape(option)}</option>')
+        is_checked = " checked" if option in selected_set else ""
+        tags.append(
+            f"""
+            <label class="checkbox-option">
+                <input type="checkbox" name="interests" value="{escape(option)}"{is_checked}>
+                {escape(option)}
+            </label>
+            """
+        )
     return "\n".join(tags)
 
 
@@ -340,8 +347,32 @@ def render_page(
             font: inherit;
             background: #fff;
         }}
-        select[multiple] {{
-            min-height: 142px;
+        .checkbox-panel {{
+            max-height: 190px;
+            overflow-y: auto;
+            display: grid;
+            gap: 4px;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fff;
+        }}
+        .checkbox-option {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 30px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+        }}
+        .checkbox-option:hover {{
+            background: #eef6ff;
+        }}
+        .checkbox-option input {{
+            flex: 0 0 auto;
         }}
         .hint {{
             color: var(--muted);
@@ -521,9 +552,9 @@ def render_page(
                 </label>
 
                 <label>Интересы
-                    <select name="interests" multiple>
-                        {multi_option_tags(options["interests"], selected_interests)}
-                    </select>
+                    <div class="checkbox-panel">
+                        {checkbox_tags(options["interests"], selected_interests)}
+                    </div>
                     <span class="hint">Можно выбрать до 5 вариантов. Если ничего не выбрать, интересы считаются любыми.</span>
                 </label>
 
